@@ -1,0 +1,78 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Authors>RzR</Authors>
+    <Copyright>RzR</Copyright>
+    <Owners>RzR;eGOV</Owners>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>PackageIcon.png</PackageIcon>
+    <NoWarn>$(NoWarn);CS8032</NoWarn>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageTags>MPass;e-GOV;MD;RM;Helper;Wrapper;GOV.MD;AGE;EGA;DotNet;Framework;Authentication;Service</PackageTags>
+    <RepositoryUrl>https://github.com/I-RzR-I/eGovMD-MPassHelperDotNet</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/I-RzR-I/eGovMD-MPassHelperDotNet</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageDescription>A wrapper for governmental SSO service for a quick way to implement it with a few configuration settings. Service is provided by an e-governance agency (https://egov.md/), named `MPass`, available in the Republic of Moldova.</PackageDescription>
+    <Summary>A wrapper for governmental SSO service for a quick way to implement it with a few configuration settings. Service is provided by an e-governance agency (https://egov.md/), named `MPass`, available in the Republic of Moldova.</Summary>
+    <PackageTitle>RzR.Shared.eGovMD-MPassHelperDotNet (e-GOV MD MPass helper)</PackageTitle>
+    <Title>RzR.Shared.eGovMD-MPassHelperDotNet (e-GOV MD MPass helper)</Title>
+    <LangVersion>9.0</LangVersion>
+    <RepositoryType>GIT</RepositoryType>
+    <Language>en-US</Language>
+    <PackageIconUrl />
+    <DebugType>Full</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\shared\GeneralAssemblyInfo.cs" Link="Properties\GeneralAssemblyInfo.cs" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\assets\PackageIcon.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AggregatedGenericResultMessage" Version="1.2.0" />
+    <PackageReference Include="DomainCommonExtensions" Version="1.0.5.2131" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="5.0.17" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="7.0.7" />
+    <PackageReference Include="UniqueServiceCollection" Version="1.0.2.831" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="5.0.0" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="7.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Connected Services\" />
+    <Folder Include="Enums\" />
+  </ItemGroup>
+
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties BuildVersion_StartDate="2023/06/30" />
+    </VisualStudio>
+  </ProjectExtensions>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="PowerShell -NoProfile -ExecutionPolicy unrestricted -file $(SolutionDir)../build/pack.ps1 $(ConfigurationName)" />
+  </Target>
+</Project>
