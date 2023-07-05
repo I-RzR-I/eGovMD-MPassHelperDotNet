@@ -53,7 +53,7 @@
 
   <ItemGroup>
     <PackageReference Include="AggregatedGenericResultMessage" Version="1.2.0" />
-    <PackageReference Include="DomainCommonExtensions" Version="1.0.5.2131" />
+    <PackageReference Include="DomainCommonExtensions" Version="1.0.7.535" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="5.0.17" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="7.0.7" />
     <PackageReference Include="UniqueServiceCollection" Version="1.0.2.831" />
