@@ -29,7 +29,7 @@ using System.Resources;
 
 [assembly: AssemblyCompany("RzR ®")]
 [assembly: AssemblyProduct("e-GOV MD MPassHelperDotNet")]
-[assembly: AssemblyCopyright("Copyright © 2022-2023 RzR All rights reserved.")]
+[assembly: AssemblyCopyright("Copyright © 2022-2024 RzR All rights reserved.")]
 [assembly: AssemblyTrademark("® RzR™")]
 [assembly:
     AssemblyDescription(
@@ -43,6 +43,6 @@ using System.Resources;
 
 [assembly: NeutralResourcesLanguage("en-US", UltimateResourceFallbackLocation.MainAssembly)]
 
-[assembly: AssemblyVersion("1.0.1.0810")]
-[assembly: AssemblyFileVersion("1.0.1.0810")]
-[assembly: AssemblyInformationalVersion("1.0.1.*")]
+[assembly: AssemblyVersion("1.0.2.8005")]
+[assembly: AssemblyFileVersion("1.0.2.8005")]
+[assembly: AssemblyInformationalVersion("1.0.2.8005")]

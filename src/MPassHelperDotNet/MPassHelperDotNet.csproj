@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <!--<TargetFramework>netstandard2.0</TargetFramework>-->
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Authors>RzR</Authors>
@@ -52,14 +52,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AggregatedGenericResultMessage" Version="1.2.0" />
-    <PackageReference Include="DomainCommonExtensions" Version="1.0.7.535" />
+    <PackageReference Include="AggregatedGenericResultMessage" Version="1.3.4.6865" />
+    <PackageReference Include="DomainCommonExtensions" Version="1.3.0" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="5.0.17" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="7.0.7" />
-    <PackageReference Include="UniqueServiceCollection" Version="1.0.2.831" />
+    <PackageReference Include="UniqueServiceCollection" Version="1.0.5.8331" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="5.0.0" />
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="7.0.1" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="4.7.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -72,7 +72,7 @@
       <UserProperties BuildVersion_StartDate="2023/06/30" />
     </VisualStudio>
   </ProjectExtensions>
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+  <!--<Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="PowerShell -NoProfile -ExecutionPolicy unrestricted -file $(SolutionDir)../build/pack.ps1 $(ConfigurationName)" />
-  </Target>
+  </Target>-->
 </Project>
