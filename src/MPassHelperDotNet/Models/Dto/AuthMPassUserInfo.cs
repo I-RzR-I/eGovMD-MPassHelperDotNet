@@ -62,6 +62,11 @@ namespace MPassHelperDotNet.Models.Dto
         public string PhoneNumber { get; set; }
 
         /// <summary>
+        ///     User home phone number
+        /// </summary>
+        public string HomePhone { get; set; }
+
+        /// <summary>
         ///     User phone number
         /// </summary>
         public string MobilePhoneNumber { get; set; }
@@ -77,7 +82,7 @@ namespace MPassHelperDotNet.Models.Dto
         public string Gender { get; set; }
 
         /// <summary>
-        ///     Birth date
+        ///     Birthdate
         /// </summary>
         public DateTime? BirthDate { get; set; }
 
@@ -90,5 +95,25 @@ namespace MPassHelperDotNet.Models.Dto
         ///     User auth IP
         /// </summary>
         public string AuthIp { get; set; }
+
+        /// <summary>
+        ///     Specifies whether the user is verified to be a resident of Republic of Moldova
+        /// </summary>
+        public bool IsResident { get; set; }
+
+        /// <summary>
+        ///     The name and identifier of the companies
+        /// </summary>
+        public string AdministeredLegalEntity { get; set; }
+
+        /// <summary>
+        ///     The company IDNO
+        /// </summary>
+        public string Idno { get; set; }
+
+        /// <summary>
+        ///     The company name
+        /// </summary>
+        public string CompanyName { get; set; }
     }
 }

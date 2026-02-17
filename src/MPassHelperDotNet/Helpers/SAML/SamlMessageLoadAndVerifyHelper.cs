@@ -113,9 +113,10 @@ namespace MPassHelperDotNet.Helpers.SAML
 
                 // get attributes
                 if (!generalValidation.Response.NamespaceManager.IsNull())
+                {
                     // ReSharper disable once PossibleNullReferenceException
                     foreach (XmlElement attributeElement in assertionNode.SelectNodes(
-                        "saml2:AttributeStatement/saml2:Attribute", generalValidation.Response.NamespaceManager))
+                                 "saml2:AttributeStatement/saml2:Attribute", generalValidation.Response.NamespaceManager))
                     {
                         var attributeName = attributeElement.GetAttribute("Name");
                         var attributeValues =
@@ -124,6 +125,7 @@ namespace MPassHelperDotNet.Helpers.SAML
                             .Select(attributeValueElement => attributeValueElement.InnerXml).ToList();
                         validationResult.Attributes.Add(attributeName, attributeValues);
                     }
+                }
 
                 return Result<LoadAndVerifyLoginResponseResult>.Success(validationResult);
             }
