@@ -179,6 +179,7 @@ namespace MPassHelperDotNet.Configurations.Certificate
             var array = File.ReadAllLines(certificateFile);
             var num = -1;
             for (var i = 0; i < array.Length; i++)
+            {
                 if (num.IsLessZero())
                 {
                     if (array[i].Contains("BEGIN CERTIFICATE", StringComparison.OrdinalIgnoreCase)) num = i + 1;
@@ -189,6 +190,7 @@ namespace MPassHelperDotNet.Configurations.Certificate
                         new X509Certificate2(Convert.FromBase64String(string.Concat(array.SubArray(num, i - 1)))));
                     num = -1;
                 }
+            }
 
             return x509Certificate2Collection;
         }

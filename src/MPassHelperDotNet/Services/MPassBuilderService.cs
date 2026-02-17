@@ -194,7 +194,12 @@ namespace MPassHelperDotNet.Services
                     .Replace("{RelayState}", request.RelayState);
 
                 return await Task.FromResult(Result<BuildLogOutResponseResultDto>
-                    .Success(new BuildLogOutResponseResultDto { LogoutResponseId = requestId, HtmlAuthDocument = htmlAuthDocument, SamlResponse = samlMessage }));
+                    .Success(new BuildLogOutResponseResultDto
+                    {
+                        LogoutResponseId = requestId, 
+                        HtmlAuthDocument = htmlAuthDocument, 
+                        SamlResponse = samlMessage
+                    }));
             }
             catch (Exception e)
             {

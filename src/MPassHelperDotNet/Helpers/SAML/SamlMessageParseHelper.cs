@@ -129,9 +129,13 @@ namespace MPassHelperDotNet.Helpers.SAML
                 var authChildNodes = assertionNode?.SelectSingleNode("saml2:AuthnStatement", xmlNamespaceManager)
                     ?.ChildNodes;
                 if (!authChildNodes.IsNull())
+                {
                     foreach (XmlNode tag in authChildNodes!)
+                    {
                         if (tag.LocalName.Equals("SubjectLocality"))
                             userInfo.AuthIp = tag?.Attributes?["Address"]?.Value;
+                    }
+                }
 
                 foreach (XmlNode tag in childNodes!)
                 {
@@ -140,6 +144,9 @@ namespace MPassHelperDotNet.Helpers.SAML
                     {
                         case "nameidentifier":
                             userInfo.NameIdentifier = tag.InnerText;
+                            break;
+                        case "isresident":
+                            userInfo.IsResident = Convert.ToBoolean(tag.InnerText);
                             break;
                         case "firstname":
                             userInfo.FirstName = tag.InnerText;
@@ -162,8 +169,20 @@ namespace MPassHelperDotNet.Helpers.SAML
                         case "phone":
                             userInfo.PhoneNumber = tag.InnerText;
                             break;
+                        case "homephone":
+                            userInfo.HomePhone = tag.InnerText;
+                            break;
                         case "language":
                             userInfo.Language = tag.InnerText;
+                            break;
+                        case "administeredlegalentity":
+                            userInfo.AdministeredLegalEntity = tag.InnerText;
+                            break;
+                        case "idno":
+                            userInfo.Idno = tag.InnerText;
+                            break;
+                        case "companyname":
+                            userInfo.CompanyName = tag.InnerText;
                             break;
                     }
                 }
