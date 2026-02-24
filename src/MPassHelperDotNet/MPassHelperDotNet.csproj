@@ -52,7 +52,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AggregatedGenericResultMessage" Version="1.4.0.7788" />
+    <PackageReference Include="AggregatedGenericResultMessage" Version="1.4.1.8497" />
     <PackageReference Include="DomainCommonExtensions" Version="4.5.0.7408" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="5.0.17" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions" Version="7.0.7" />
