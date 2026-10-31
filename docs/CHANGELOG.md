@@ -1,3 +1,9 @@
+### **v2.0.0.0** [[RzR](mailto:108324929+I-RzR-I@users.noreply.github.com)] 31-10-2026
+* [bd0b117] (RzR) -> Update the solution file.
+* [e79f53f] (RzR) -> Add new sample project
+* [ed4ab54] (RzR) -> Add new test project.
+* [a856f47] (RzR) -> Strengthen SAML validation and upgrade package references.
+
 ### **v1.1.1.303** [[RzR](mailto:108324929+I-RzR-I@users.noreply.github.com)] 25-02-2026
 * [413b696] (RzR) -> Auto commit uncommited files
 * [4524ca0] (RzR) -> Upgrade reference package version (fixed version)
