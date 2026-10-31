@@ -4,7 +4,7 @@
 //  Created On       : 2023-06-13 20:41
 // 
 //  Last Modified By : RzR
-//  Last Modified On : 2023-06-28 16:26
+//  Last Modified On : 2026-09-24 08:58
 // ***********************************************************************
 //  <copyright file="CertificateLoader.cs" company="">
 //   Copyright (c) RzR. All rights reserved.
@@ -14,17 +14,30 @@
 //  </summary>
 // ***********************************************************************
 
-#region U S A G E S
+#region U S I N G
 
-using System;
-using System.IO;
-using System.Security.Cryptography.X509Certificates;
-using DomainCommonExtensions.CommonExtensions;
-using DomainCommonExtensions.DataTypeExtensions;
 using MPassHelperDotNet.Extensions;
+using MPassHelperDotNet.Models.Client;
+using RzR.Extensions.Domain.Primitives;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+
+#if  NETSTANDARD2_0
+
+using RzR.Extensions.Domain.Text;
+
+#endif
+
+#if NETSTANDARD2_1_OR_GREATER || NET
+
+using System.Runtime.CompilerServices;
+
+#endif
 
 #endregion
-
 
 // ReSharper disable IdentifierTypo
 // ReSharper disable ExpressionIsAlwaysNull
@@ -33,17 +46,24 @@ using MPassHelperDotNet.Extensions;
 namespace MPassHelperDotNet.Configurations.Certificate
 {
     /// <summary>
-    ///     Certificate loader
+    ///     Certificate loader.
     /// </summary>
-    /// <remarks></remarks>
     internal static class CertificateLoader
     {
         /// <summary>
-        ///     Load public certificate
+        ///     (Immutable)
+        ///     X509KeyStorageFlags.EphemeralKeySet (value 32); not part of the netstandard2.0 API
+        ///     surface.
         /// </summary>
-        /// <param name="certificatePath">Certificate path</param>
-        /// <returns></returns>
-        /// <remarks></remarks>
+        private const X509KeyStorageFlags EphemeralKeySet = (X509KeyStorageFlags)32;
+
+        /// <summary>
+        ///     Load public certificate.
+        /// </summary>
+        /// <param name="certificatePath">Certificate path.</param>
+        /// <returns>
+        ///     An X509Certificate2.
+        /// </returns>
         internal static X509Certificate2 Public(string certificatePath)
         {
             if (string.IsNullOrWhiteSpace(certificatePath))
@@ -60,12 +80,96 @@ namespace MPassHelperDotNet.Configurations.Certificate
         }
 
         /// <summary>
-        ///     Load private certificate
+        ///     Load all public certificates (primary and rotation identity provider certificates)
         /// </summary>
-        /// <param name="certificatePath">Required. Certificate path</param>
-        /// <param name="certificatePassword">Optional. Certificate password. The default value is null.</param>
-        /// <returns></returns>
-        /// <remarks></remarks>
+        /// <param name="paths">Certificate paths; null, empty and not found entries are skipped.</param>
+        /// <returns>
+        ///     Return the loaded certificates, in the order of the paths, without duplicates (same
+        ///     thumbprint)
+        /// </returns>
+        internal static X509Certificate2Collection LoadAll(IEnumerable<string> paths)
+        {
+            var certificates = new X509Certificate2Collection();
+            if (paths.IsNull())
+                return certificates;
+
+            try
+            {
+                foreach (var path in paths)
+                {
+                    var certificate = Public(path);
+                    if (certificate.IsNull())
+                        continue;
+
+                    if (ContainsThumbprint(certificates, certificate.Thumbprint))
+                        certificate.Dispose();
+                    else
+                        certificates.Add(certificate);
+                }
+            }
+            catch
+            {
+                DisposeAll(certificates);
+                throw;
+            }
+
+            return certificates;
+        }
+
+        /// <summary>
+        ///     Get the identity provider certificates trusted for the inbound signature.
+        /// </summary>
+        /// <param name="options">MPass options.</param>
+        /// <returns>
+        ///     Return the configured <see cref="MPassSamlOptions.IdentityProviderCertificates" />, plus
+        ///     <see cref="MPassSamlOptions.IdentityProviderCertificate" /> when it is set and not
+        ///     already listed (same thumbprint).
+        /// </returns>
+        internal static X509Certificate2Collection IdentityProviderCertificates(MPassSamlOptions options)
+        {
+            var certificates = new X509Certificate2Collection();
+            if (options.IsNull())
+                return certificates;
+
+            if (!options.IdentityProviderCertificates.IsNull())
+                certificates.AddRange(options.IdentityProviderCertificates);
+
+            var primaryCertificate = options.IdentityProviderCertificate;
+            if (!primaryCertificate.IsNull() && !ContainsThumbprint(certificates, primaryCertificate.Thumbprint))
+                certificates.Add(primaryCertificate);
+
+            return certificates;
+        }
+
+        /// <summary>
+        ///     Check whether the collection already contains a certificate with the given thumbprint.
+        /// </summary>
+        /// <param name="certificates">Certificate collection.</param>
+        /// <param name="thumbprint">Certificate thumbprint.</param>
+        /// <returns>
+        ///     Return true if a certificate with the same thumbprint exists; otherwise false.
+        /// </returns>
+        internal static bool ContainsThumbprint(X509Certificate2Collection certificates, string thumbprint)
+        {
+            foreach (var certificate in certificates)
+            {
+                if (string.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        ///     Load private certificate.
+        /// </summary>
+        /// <param name="certificatePath">Required. Certificate path.</param>
+        /// <param name="certificatePassword">
+        ///     (Optional) Optional. Certificate password. The default value is null.
+        /// </param>
+        /// <returns>
+        ///     An X509Certificate2.
+        /// </returns>
         internal static X509Certificate2 Private(string certificatePath, string certificatePassword = null)
         {
             X509Certificate2 result;
@@ -77,10 +181,6 @@ namespace MPassHelperDotNet.Configurations.Certificate
             {
                 var x509Certificate2Collection = new X509Certificate2Collection();
                 x509Certificate2Collection.Import(certificatePath, certificatePassword, X509KeyStorageFlags.DefaultKeySet);
-                if (x509Certificate2Collection.Count > 1)
-                {
-                    CertificateLoader.StoreIntermediateCertificates(x509Certificate2Collection, 0, x509Certificate2Collection.Count - 1);
-                }
                 var x509Certificate2Collection2 = x509Certificate2Collection;
                 var index = x509Certificate2Collection2.Count - 1;
 
@@ -140,18 +240,26 @@ namespace MPassHelperDotNet.Configurations.Certificate
             }
 
 #else
-            result = new X509Certificate2(certificatePath, certificatePassword);
+            try
+            {
+                result = new X509Certificate2(certificatePath, certificatePassword, EphemeralKeySet);
+            }
+            catch (Exception e) when (e is PlatformNotSupportedException || e is CryptographicException || e is ArgumentException)
+            {
+                result = new X509Certificate2(certificatePath, certificatePassword, X509KeyStorageFlags.UserKeySet);
+            }
 #endif
 
             return result;
         }
 
         /// <summary>
-        ///     Load public certificate from chain
+        ///     Load public certificate from chain.
         /// </summary>
-        /// <param name="certificateFile">Certificate file path</param>
-        /// <returns></returns>
-        /// <remarks></remarks>
+        /// <param name="certificateFile">Certificate file path.</param>
+        /// <returns>
+        ///     The public certificate from chain.
+        /// </returns>
         private static X509Certificate2 LoadPublicCertificateFromChain(string certificateFile)
         {
             if (!File.Exists(certificateFile))
@@ -161,62 +269,57 @@ namespace MPassHelperDotNet.Configurations.Certificate
             if (x509Certificate2Collection.Count.IsZero())
                 return null;
 
-            if (x509Certificate2Collection.Count > 1)
-                StoreIntermediateCertificates(x509Certificate2Collection, 1, x509Certificate2Collection.Count);
+            for (var i = 1; i < x509Certificate2Collection.Count; i++)
+                x509Certificate2Collection[i].Dispose();
 
             return x509Certificate2Collection[0];
         }
 
         /// <summary>
-        ///     Load public certificate from chain
+        ///     Load public certificate from chain.
         /// </summary>
-        /// <param name="certificateFile">Certificate file path</param>
-        /// <returns></returns>
-        /// <remarks></remarks>
+        /// <param name="certificateFile">Certificate file path.</param>
+        /// <returns>
+        ///     The public certificates chain.
+        /// </returns>
         private static X509Certificate2Collection LoadPublicCertificatesChain(string certificateFile)
         {
             var x509Certificate2Collection = new X509Certificate2Collection();
             var array = File.ReadAllLines(certificateFile);
             var num = -1;
-            for (var i = 0; i < array.Length; i++)
+            try
             {
-                if (num.IsLessZero())
+                for (var i = 0; i < array.Length; i++)
                 {
-                    if (array[i].Contains("BEGIN CERTIFICATE", StringComparison.OrdinalIgnoreCase)) num = i + 1;
+                    if (num.IsLessZero())
+                    {
+                        if (array[i].Contains("BEGIN CERTIFICATE", StringComparison.OrdinalIgnoreCase)) num = i + 1;
+                    }
+                    else if (array[i].Contains("END CERTIFICATE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        x509Certificate2Collection.Add(
+                            new X509Certificate2(Convert.FromBase64String(string.Concat(array.SubArray(num, i - num)))));
+                        num = -1;
+                    }
                 }
-                else if (array[i].Contains("END CERTIFICATE", StringComparison.OrdinalIgnoreCase))
-                {
-                    x509Certificate2Collection.Add(
-                        new X509Certificate2(Convert.FromBase64String(string.Concat(array.SubArray(num, i - 1)))));
-                    num = -1;
-                }
+            }
+            catch
+            {
+                DisposeAll(x509Certificate2Collection);
+                throw;
             }
 
             return x509Certificate2Collection;
         }
 
         /// <summary>
-        ///     Load certificate from store
+        ///     Dispose every certificate in the collection.
         /// </summary>
-        /// <param name="certificates">Certificate collection</param>
-        /// <param name="start">Start index</param>
-        /// <param name="end">End index</param>
-        /// <remarks></remarks>
-        private static void StoreIntermediateCertificates(X509Certificate2Collection certificates, int start, int end)
+        /// <param name="certificates">Certificate collection.</param>
+        private static void DisposeAll(X509Certificate2Collection certificates)
         {
-            if (start >= end)
-                return;
-
-            var x509Store = new X509Store(StoreName.CertificateAuthority, StoreLocation.CurrentUser);
-            x509Store.Open(OpenFlags.ReadWrite);
-            for (var i = start; i < end; i++)
-            {
-                var certificate = certificates[i];
-                if (certificate.Issuer != certificate.Subject && !x509Store.Certificates.Contains(certificate))
-                    x509Store.Add(certificate);
-            }
-
-            x509Store.Close();
+            foreach (var certificate in certificates)
+                certificate.Dispose();
         }
     }
 }

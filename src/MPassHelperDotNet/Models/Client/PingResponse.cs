@@ -15,6 +15,7 @@
 // ***********************************************************************
 
 // ReSharper disable UnusedAutoPropertyAccessor.Global
+// 
 namespace MPassHelperDotNet.Models.Client
 {
     /// <summary>

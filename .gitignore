@@ -271,3 +271,7 @@ coverage.*
 # Certificates
 *.pfx
 *.cer
+
+#NCrunch
+*.ncrunchproject
+*.ncrunchsolution

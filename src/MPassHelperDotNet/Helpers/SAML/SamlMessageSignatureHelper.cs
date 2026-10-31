@@ -4,7 +4,7 @@
 //  Created On       : 2023-06-15 18:53
 // 
 //  Last Modified By : RzR
-//  Last Modified On : 2023-06-28 16:26
+//  Last Modified On : 2026-09-25 18:46
 // ***********************************************************************
 //  <copyright file="SamlMessageSignatureHelper.cs" company="">
 //   Copyright (c) RzR. All rights reserved.
@@ -19,11 +19,14 @@
 using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
-using System.Xml;
-using AggregatedGenericResultMessage;
-using AggregatedGenericResultMessage.Abstractions;
-using AggregatedGenericResultMessage.Extensions.Result;
-using DomainCommonExtensions.CommonExtensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using RzR.ResultMessage;
+using RzR.ResultMessage.Abstractions;
+using RzR.Extensions.Domain.Primitives;
+using RzR.Extensions.Domain.Text;
+using MPassHelperDotNet.Helpers.Logging;
+using MPassHelperDotNet.Helpers.Messages;
 
 // ReSharper disable RedundantArgumentDefaultValue
 
@@ -37,75 +40,84 @@ namespace MPassHelperDotNet.Helpers.SAML
     internal static class SamlMessageSignatureHelper
     {
         /// <summary>
-        ///     Sign SAML string
+        ///     Sign SAML string.
         /// </summary>
-        /// <param name="xmlSaml">SAML xml string</param>
-        /// <param name="privateCertificate">Private certificate for sign</param>
-        /// <returns>Return signed XML string</returns>
-        internal static IResult<string> SignSaml(string xmlSaml, X509Certificate2 privateCertificate)
+        /// <param name="xmlSaml">SAML xml string.</param>
+        /// <param name="privateCertificate">Private certificate for sign.</param>
+        /// <param name="logger">
+        ///     (Optional) Optional. Logger for caught exceptions. The default value is null (no logging).
+        /// </param>
+        /// <returns>
+        ///     Return signed XML string.
+        /// </returns>
+        internal static IResult<string> SignSaml(string xmlSaml, X509Certificate2 privateCertificate, ILogger logger = null)
         {
-            try
-            {
-                var doc = new XmlDocument();
-                doc.LoadXml(xmlSaml);
+            logger ??= NullLogger.Instance;
 
-                var keyInfo = new KeyInfo();
-                keyInfo.AddClause(new KeyInfoX509Data(privateCertificate));
-
-                var signedXml = new SignedXml(doc) { SigningKey = privateCertificate.PrivateKey, KeyInfo = keyInfo };
-                signedXml.SignedInfo.CanonicalizationMethod = SignedXml.XmlDsigExcC14NTransformUrl;
-
-                if (!doc.DocumentElement.IsNull())
-                {
-                    var messageId = doc.DocumentElement?.GetAttribute("ID");
-                    var reference = new Reference("#" + messageId);
-                    reference.AddTransform(new XmlDsigEnvelopedSignatureTransform());
-                    signedXml.AddReference(reference);
-                }
-
-                signedXml.ComputeSignature();
-
-                // insert after Issuer
-                doc.DocumentElement?.InsertAfter(signedXml.GetXml(), doc.DocumentElement.FirstChild);
-
-                return Result<string>.Success(doc.OuterXml);
-            }
-            catch (Exception e)
+            if (xmlSaml.IsNullOrEmpty())
             {
                 return Result<string>
-                    .Failure(DefaultMessages.ErrorSignSamlXml)
-                    .WithError(e);
+                    .Failure(string.Format(DefaultMessages.ArgumentNullMessage, nameof(xmlSaml)));
             }
-        }
 
-        /// <summary>
-        ///     Verify signed XML/SAML document
-        /// </summary>
-        /// <param name="document">XML document to be checked</param>
-        /// <param name="publicCertificate">Public certificate</param>
-        /// <returns></returns>
-        /// <remarks>Return if is valid or not</remarks>
-        internal static IResult<bool> Verify(XmlDocument document, X509Certificate2 publicCertificate)
-        {
+            if (privateCertificate.IsNull())
+            {
+                return Result<string>
+                    .Failure(string.Format(DefaultMessages.ArgumentNullMessage, nameof(privateCertificate)));
+            }
+
             try
             {
-                var signedXml = new SignedXml(document);
-                if (document.DocumentElement.IsNull())
-                    return Result<bool>.Success(signedXml.CheckSignature(publicCertificate, true));
+                var loadDocument = SamlXmlLoadHelper.LoadFromXmlString(xmlSaml, logger);
+                if (loadDocument.IsFailure)
+                {
+                    return Result<string>.Failure(DefaultMessages.ErrorSignSamlXml);
+                }
 
-                var signatureNode = document.DocumentElement?["Signature", "http://www.w3.org/2000/09/xmldsig#"];
-                if (signatureNode.IsNull())
-                    return Result<bool>.Success(false);
+                var doc = loadDocument.Response;
+                var messageId = doc.DocumentElement?.GetAttribute("ID");
+                if (messageId.IsNullOrEmpty())
+                {
+                    return Result<string>.Failure(DefaultMessages.ErrorSignSamlXml);
+                }
 
-                signedXml.LoadXml(signatureNode);
+                using (var signingKey = privateCertificate.GetRSAPrivateKey())
+                {
+                    if (signingKey.IsNull())
+                        return Result<string>.Failure(DefaultMessages.ErrorSignSamlXml);
 
-                return Result<bool>.Success(signedXml.CheckSignature(publicCertificate, true));
+                    var keyInfo = new KeyInfo();
+                    keyInfo.AddClause(new KeyInfoX509Data(privateCertificate, X509IncludeOption.EndCertOnly));
+
+                    var signedXml = new SignedXml(doc)
+                    {
+                        SigningKey = signingKey,
+                        KeyInfo = keyInfo
+                    };
+
+                    signedXml.SignedInfo!.CanonicalizationMethod = SignedXml.XmlDsigExcC14NTransformUrl;
+                    signedXml.SignedInfo.SignatureMethod = SignedXml.XmlDsigRSASHA256Url;
+
+                    var reference = new Reference("#" + messageId) { DigestMethod = SignedXml.XmlDsigSHA256Url };
+                    reference.AddTransform(new XmlDsigEnvelopedSignatureTransform());
+                    reference.AddTransform(new XmlDsigExcC14NTransform());
+                    signedXml.AddReference(reference);
+
+                    signedXml.ComputeSignature();
+
+                    // insert after Issuer
+                    doc.DocumentElement!.InsertAfter(signedXml.GetXml(), doc.DocumentElement.FirstChild);
+                }
+
+                return Result<string>
+                    .Success(doc.OuterXml);
             }
             catch (Exception e)
             {
-                return Result<bool>
-                    .Failure(DefaultMessages.ErrorVerifySignedSamlXml)
-                    .WithError(e);
+                ExceptionLogHelper.LogCaughtException(logger, e, nameof(SignSaml));
+
+                return Result<string>
+                    .Failure(DefaultMessages.ErrorSignSamlXml);
             }
         }
     }

@@ -4,7 +4,7 @@
 //  Created On       : 2023-06-15 17:18
 // 
 //  Last Modified By : RzR
-//  Last Modified On : 2023-06-28 16:26
+//  Last Modified On : 2026-09-25 12:28
 // ***********************************************************************
 //  <copyright file="SamlMessageParseHelper.cs" company="">
 //   Copyright (c) RzR. All rights reserved.
@@ -17,15 +17,16 @@
 #region U S A G E S
 
 using System;
-using System.Xml;
-using AggregatedGenericResultMessage;
-using AggregatedGenericResultMessage.Abstractions;
-using AggregatedGenericResultMessage.Extensions.Result;
-using DomainCommonExtensions.CommonExtensions;
-using DomainCommonExtensions.DataTypeExtensions;
-using MPassHelperDotNet.Extensions.SAML;
+using System.Globalization;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using RzR.ResultMessage;
+using RzR.ResultMessage.Abstractions;
+using RzR.Extensions.Domain.Primitives;
+using MPassHelperDotNet.Helpers.Logging;
 using MPassHelperDotNet.Models.Dto;
-// ReSharper disable ConstantConditionalAccessQualifier
+using MPassHelperDotNet.Models.Internal.Result;
+using MPassHelperDotNet.Helpers.Messages;
 
 #endregion
 
@@ -36,153 +37,94 @@ namespace MPassHelperDotNet.Helpers.SAML
     /// </summary>
     internal static class SamlMessageParseHelper
     {
-        private const string SuccessStatusCode = "urn:oasis:names:tc:SAML:2.0:status:Success";
-        private const string FailedAuthStatusCode = "urn:oasis:names:tc:SAML:2.0:status:AuthnFailed";
+        private const string BirthDateExactFormat = "yyyy-MM-dd";
 
         /// <summary>
-        ///     Get user identifier code from SAML request
+        ///     Get auth user details from the verified login response.
         /// </summary>
-        /// <param name="samlRequest">SAML request</param>
-        /// <returns>Return user identifier code</returns>
-        /// <remarks></remarks>
-        internal static IResult<string> GetUserIdentifierFromSamlRequest(string samlRequest)
-        {
-            if (samlRequest.IsNullOrEmpty())
-                return Result<string>.Failure(string.Format(DefaultMessages.ArgumentNullMessage, nameof(samlRequest)));
-            try
-            {
-                var xmlDocument = new XmlDocument();
-                var xmlNamespaceManager = xmlDocument.ToRequestSamlNsManager();
-
-                xmlDocument.LoadXml(samlRequest.Base64Decode());
-                if (xmlDocument.DocumentElement.IsNull())
-                    return null;
-
-                var responseNode = xmlDocument.DocumentElement?.SelectSingleNode("/samlp:LogoutRequest/saml:NameID", xmlNamespaceManager);
-
-                return Result<string>.Success(responseNode?.InnerXml);
-            }
-            catch (Exception e)
-            {
-                return Result<string>
-                    .Failure(DefaultMessages.ErrorGetUserIdentifierFromSaml)
-                    .WithError(e);
-            }
-        }
-
-        /// <summary>
-        ///     Get auth user details from XML response (SAML)
-        /// </summary>
-        /// <param name="xmlResponse">XML data, decoded from SAML</param>
-        /// <param name="isDecoded">
-        ///     Bit to check if sended/input string is decoded from SAML or not.
-        ///     Default value is 'true', means it's in clear format.
+        /// <param name="verified">
+        ///     Verified login response data (result of the signature and protocol validation)
         /// </param>
-        /// <returns>Return parsed user auth details</returns>
-        internal static IResult<AuthMPassUserInfo> GetAuthUserDetails(string xmlResponse, bool isDecoded = true)
+        /// <param name="logger">
+        ///     (Optional) Optional. Logger for caught exceptions. The default value is null (no logging).
+        /// </param>
+        /// <returns>
+        ///     Return parsed user auth details.
+        /// </returns>
+        internal static IResult<AuthMPassUserInfo> GetAuthUserDetails(LoadAndVerifyLoginResponseResult verified, ILogger logger = null)
         {
-            if (xmlResponse.IsNullOrEmpty())
-                return Result<AuthMPassUserInfo>.Failure(string.Format(DefaultMessages.ArgumentNullMessage, nameof(xmlResponse)));
+            logger ??= NullLogger.Instance;
 
-            if (isDecoded == false)
-                xmlResponse = xmlResponse.Base64Decode();
+            if (verified.IsNull())
+            {
+                return Result<AuthMPassUserInfo>
+                    .Failure(string.Format(DefaultMessages.ArgumentNullMessage, nameof(verified)));
+            }
+
             try
             {
-                var xmlDocument = new XmlDocument();
-                var xmlNamespaceManager = xmlDocument.ToResponseSamlNsManager();
-
-                xmlDocument.LoadXml(xmlResponse);
-                if (xmlDocument.DocumentElement.IsNull())
-                    return Result<AuthMPassUserInfo>.Failure(DefaultMessages.XmlDocumentElementNull);
-
-                var responseNode = xmlDocument.DocumentElement?.SelectSingleNode("/saml2p:Response", xmlNamespaceManager);
-                var statusNode = responseNode?.SelectSingleNode("saml2p:Status", xmlNamespaceManager);
-                var statusCodeNode = statusNode?.SelectSingleNode("saml2p:StatusCode", xmlNamespaceManager);
-                var statusCode = statusCodeNode?.Attributes?["Value"]?.Value;
-
-                if (statusCode != SuccessStatusCode)
+                if (verified.Attributes.IsNull())
                 {
-                    var statusFail = statusNode?.SelectSingleNode("saml2p:StatusCode/saml2p:StatusCode", xmlNamespaceManager);
-                    var statusFailCode = statusFail?.Attributes?["Value"]?.Value;
-
                     return Result<AuthMPassUserInfo>
-                        .Failure(statusFailCode == FailedAuthStatusCode
-                            ? DefaultMessages.AuthCanceled
-                            : DefaultMessages.AuthFailed);
+                        .Failure(string.Format(DefaultMessages.NoChildInSaml2Attribute, "saml2:AttributeStatement"));
                 }
-
-                var assertionNode = responseNode.SelectSingleNode("saml2:Assertion", xmlNamespaceManager);
-                var subjectNode = assertionNode?.SelectSingleNode("saml2:Subject", xmlNamespaceManager);
-                //var nameIdNode = assertionNode?.SelectSingleNode("saml2:NameID", xmlNamespaceManager);
-                var childNodes = assertionNode?.SelectSingleNode("saml2:AttributeStatement", xmlNamespaceManager)
-                    ?.ChildNodes;
-
-                if (childNodes.IsNull())
-                    return Result<AuthMPassUserInfo>.Failure(string.Format(DefaultMessages.NoChildInSaml2Attribute, "saml2:AttributeStatement"));
 
                 var userInfo = new AuthMPassUserInfo
                 {
-                    Idnp = subjectNode?.SelectSingleNode("saml2:NameID", xmlNamespaceManager)?.InnerText, 
-                    RequestId = xmlDocument.DocumentElement.Attributes["InResponseTo"]?.Value
+                    Idnp = verified.NameId,
+                    RequestId = verified.InResponseTo,
+                    AuthIp = verified.AuthIp
                 };
 
-                var authChildNodes = assertionNode?.SelectSingleNode("saml2:AuthnStatement", xmlNamespaceManager)
-                    ?.ChildNodes;
-                if (!authChildNodes.IsNull())
+                foreach (var attribute in verified.Attributes)
                 {
-                    foreach (XmlNode tag in authChildNodes!)
-                    {
-                        if (tag.LocalName.Equals("SubjectLocality"))
-                            userInfo.AuthIp = tag?.Attributes?["Address"]?.Value;
-                    }
-                }
-
-                foreach (XmlNode tag in childNodes!)
-                {
-                    var name = tag.Attributes?["Name"]?.Value ?? string.Empty;
-                    switch (name.ToLower())
+                    var name = attribute.Key;
+                    var value = attribute.Value.IsNull() ? string.Empty : string.Concat(attribute.Value);
+                    switch (name.ToLowerInvariant())
                     {
                         case "nameidentifier":
-                            userInfo.NameIdentifier = tag.InnerText;
+                            userInfo.NameIdentifier = value;
                             break;
                         case "isresident":
-                            userInfo.IsResident = Convert.ToBoolean(tag.InnerText);
+                            if (bool.TryParse(value, out var isResident))
+                                userInfo.IsResident = isResident;
                             break;
                         case "firstname":
-                            userInfo.FirstName = tag.InnerText;
+                            userInfo.FirstName = value;
                             break;
                         case "lastname":
-                            userInfo.LastName = tag.InnerText;
+                            userInfo.LastName = value;
                             break;
                         case "birthdate":
-                            userInfo.BirthDate = DateTime.Parse(tag.InnerText);
+                            if (TryParseBirthDate(value, out var birthDate))
+                                userInfo.BirthDate = birthDate;
                             break;
                         case "gender":
-                            userInfo.Gender = tag.InnerText;
+                            userInfo.Gender = value;
                             break;
                         case "emailaddress":
-                            userInfo.Email = tag.InnerText;
+                            userInfo.Email = value;
                             break;
                         case "mobilephone":
-                            userInfo.MobilePhoneNumber = tag.InnerText;
+                            userInfo.MobilePhoneNumber = value;
                             break;
                         case "phone":
-                            userInfo.PhoneNumber = tag.InnerText;
+                            userInfo.PhoneNumber = value;
                             break;
                         case "homephone":
-                            userInfo.HomePhone = tag.InnerText;
+                            userInfo.HomePhone = value;
                             break;
                         case "language":
-                            userInfo.Language = tag.InnerText;
+                            userInfo.Language = value;
                             break;
                         case "administeredlegalentity":
-                            userInfo.AdministeredLegalEntity = tag.InnerText;
+                            userInfo.AdministeredLegalEntity = value;
                             break;
                         case "idno":
-                            userInfo.Idno = tag.InnerText;
+                            userInfo.Idno = value;
                             break;
                         case "companyname":
-                            userInfo.CompanyName = tag.InnerText;
+                            userInfo.CompanyName = value;
                             break;
                     }
                 }
@@ -191,10 +133,42 @@ namespace MPassHelperDotNet.Helpers.SAML
             }
             catch (Exception e)
             {
+                ExceptionLogHelper.LogCaughtException(logger, e, nameof(GetAuthUserDetails));
+
                 return Result<AuthMPassUserInfo>
-                    .Failure(DefaultMessages.ErrorGetUserAuthDetailsFromSaml)
-                    .WithError(e);
+                    .Failure(DefaultMessages.ErrorGetUserAuthDetailsFromSaml);
             }
+        }
+
+        /// <summary>
+        ///     Try parse the birthdate attribute value with the invariant culture.
+        /// </summary>
+        /// <remarks>
+        ///     A time and an offset, when present, are ignored: the date is taken in the offset of the
+        ///     value itself (no conversion to UTC), so the calendar date never shifts.
+        /// </remarks>
+        /// <param name="value">Raw attribute value.</param>
+        /// <param name="birthDate">
+        ///     [out] Parsed birthdate when the method returns true: the calendar date as sent, at
+        ///     midnight, with
+        ///     <see cref="DateTimeKind.Utc" />
+        /// </param>
+        /// <returns>
+        ///     Return true if the value is a valid date; otherwise false.
+        /// </returns>
+        private static bool TryParseBirthDate(string value, out DateTime birthDate)
+        {
+            const DateTimeStyles styles = DateTimeStyles.AssumeUniversal;
+
+            birthDate = default;
+            if (!DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, styles, out var parsedBirthDate)
+                && !DateTimeOffset.TryParseExact(value, BirthDateExactFormat, CultureInfo.InvariantCulture,
+                    styles | DateTimeStyles.AllowWhiteSpaces, out parsedBirthDate))
+                return false;
+
+            birthDate = DateTime.SpecifyKind(parsedBirthDate.Date, DateTimeKind.Utc);
+
+            return true;
         }
     }
 }

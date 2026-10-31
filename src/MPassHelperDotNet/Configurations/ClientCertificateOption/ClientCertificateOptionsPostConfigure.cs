@@ -4,7 +4,7 @@
 //  Created On       : 2023-06-13 20:41
 // 
 //  Last Modified By : RzR
-//  Last Modified On : 2023-06-28 16:26
+//  Last Modified On : 2026-09-24 18:28
 // ***********************************************************************
 //  <copyright file="ClientCertificateOptionsPostConfigure.cs" company="">
 //   Copyright (c) RzR. All rights reserved.
@@ -17,12 +17,16 @@
 #region U S A G E S
 
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Security;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using DomainCommonExtensions.CommonExtensions;
-using DomainCommonExtensions.DataTypeExtensions;
+using RzR.Extensions.Domain.Primitives;
+using RzR.Extensions.Domain.Text;
 using Microsoft.Extensions.Options;
 using MPassHelperDotNet.Configurations.Certificate;
-using MPassHelperDotNet.Helpers;
 using MPassHelperDotNet.Models.Client;
 
 // ReSharper disable ClassNeverInstantiated.Global
@@ -37,51 +41,69 @@ namespace MPassHelperDotNet.Configurations.ClientCertificateOption
     public class ClientCertificateOptionsPostConfigure : IPostConfigureOptions<MPassSamlOptions>
     {
         /// <summary>
-        ///     POST configuration
+        ///     POST configuration.
         /// </summary>
-        /// <param name="name"></param>
+        /// <param name="name">Options name</param>
         /// <param name="options">Client certificate option</param>
         public void PostConfigure(string name, MPassSamlOptions options)
         {
-            if (options.ServiceCertificatePath.IsNullOrEmpty())
-                throw new ArgumentException(string.Format(DefaultMessages.ArgumentNullMessage, nameof(options.ServiceCertificatePath)));
+            if (options.IsNull())
+                return;
 
-            if (options.ServiceCertificatePassword.IsNullOrEmpty())
-                throw new ArgumentException(string.Format(DefaultMessages.ArgumentNullMessage, nameof(options.ServiceCertificatePassword)));
+            // The loader returns null for a blank path; the password stays required so a password-less PFX is not accepted.
+            if (!options.ServiceCertificatePassword.IsNullOrEmpty())
+            {
+                options.ServiceCertificate = TryLoad(() => CertificateLoader.Private(
+                    options.ServiceCertificatePath,
+                    options.ServiceCertificatePassword));
+            }
 
-            if (options.IdentityProviderCertificatePath.IsNullOrEmpty())
-                throw new ArgumentException(string.Format(DefaultMessages.ArgumentNullMessage, nameof(options.IdentityProviderCertificatePath)));
+            var idpCertificates = TryLoad(() => CertificateLoader.LoadAll(GetIdentityProviderCertificatePaths(options)))
+                                  ?? new X509Certificate2Collection();
 
-            if (options.SamlLoginDestination.IsNullOrEmpty())
-                throw new ArgumentException(string.Format(DefaultMessages.ArgumentNullMessage, nameof(options.SamlLoginDestination)));
+            options.IdentityProviderCertificates = idpCertificates;
+            options.IdentityProviderCertificate = idpCertificates.Count.IsGreaterThanZero() ? idpCertificates[0] : null;
 
-            if (options.SamlLogoutDestination.IsNullOrEmpty())
-                throw new ArgumentException(string.Format(DefaultMessages.ArgumentNullMessage, nameof(options.SamlLogoutDestination)));
+            options.ServiceCertificatePassword = null;
+        }
 
-            if (options.SamlServiceLoginDestination.IsNullOrEmpty())
-                throw new ArgumentException(string.Format(DefaultMessages.ArgumentNullMessage, nameof(options.SamlServiceLoginDestination)));
+        /// <summary>
+        ///     Get the identity provider certificate paths: the primary path followed by the additional
+        ///     rotation paths.
+        /// </summary>
+        /// <param name="options">MPass options.</param>
+        /// <returns>
+        ///     Return the configured paths in order, trimmed, without blank entries and without repeated
+        ///     paths.
+        /// </returns>
+        internal static IList<string> GetIdentityProviderCertificatePaths(MPassSamlOptions options)
+            => new[] { options.IdentityProviderCertificatePath }
+                .Concat(options.IdentityProviderAdditionalCertificatePaths ?? Array.Empty<string>())
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .Select(path => path.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
 
-            if (options.SamlServiceLogoutDestination.IsNullOrEmpty())
-                throw new ArgumentException(string.Format(DefaultMessages.ArgumentNullMessage, nameof(options.SamlServiceLogoutDestination)));
-
-            if (options.SamlServiceSingleLogoutDestination.IsNullOrEmpty())
-                throw new ArgumentException(string.Format(DefaultMessages.ArgumentNullMessage, nameof(options.SamlServiceSingleLogoutDestination)));
-
-            // ReSharper disable once CollectionNeverUpdated.Local
-            var certificate = new X509Certificate2Collection(CertificateLoader.Private(
-                options.ServiceCertificatePath,
-                options.ServiceCertificatePassword));
-
-            if (certificate.Count.IsZero())
-                throw new ApplicationException(DefaultMessages.InvalidCertificatePathOrPassword);
-
-            if (certificate.Count.IsGreaterThanZero())
-                options.ServiceCertificate = certificate[0];
-
-            var idpCertificate = CertificateLoader.Public(options.IdentityProviderCertificatePath);
-            options.IdentityProviderCertificate = idpCertificate.IsNull()
-                ? throw new ArgumentException(string.Format(DefaultMessages.ArgumentNullMessage, nameof(options.IdentityProviderCertificatePath)))
-                : idpCertificate;
+        /// <summary>
+        ///     Run a certificate load and return null when the file is missing, unreadable or not a
+        ///     valid certificate.
+        /// </summary>
+        /// <typeparam name="T">Loaded value type.</typeparam>
+        /// <param name="load">Load function.</param>
+        /// <returns>
+        ///     Return the loaded value or null.
+        /// </returns>
+        private static T TryLoad<T>(Func<T> load) where T : class
+        {
+            try
+            {
+                return load();
+            }
+            catch (Exception e) when (e is CryptographicException or IOException or UnauthorizedAccessException
+                                          or SecurityException or FormatException or ArgumentException or NotSupportedException)
+            {
+                return null;
+            }
         }
     }
 }

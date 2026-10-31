@@ -4,7 +4,7 @@
 //  Created On       : 2023-06-23 14:40
 // 
 //  Last Modified By : RzR
-//  Last Modified On : 2023-06-28 16:26
+//  Last Modified On : 2026-09-22 15:51
 // ***********************************************************************
 //  <copyright file="BuildLogInRequestResultDto.cs" company="">
 //   Copyright (c) RzR. All rights reserved.
@@ -31,11 +31,16 @@ namespace MPassHelperDotNet.Models.Dto.RequestBuilder.LoginRequest
         /// <summary>
         ///     HTML template used to response to issuer
         /// </summary>
+        /// <remarks>Serve it with <c>Cache-Control: no-store</c>; it carries a single-use signed SAML message.</remarks>
         public string HtmlAuthDocument { get; set; }
 
         /// <summary>
         ///     SAMLResponse message
         /// </summary>
+        /// <remarks>
+        ///     Despite its name, this property carries the signed SAML AuthnRequest (Base64), sent to the identity
+        ///     provider as the <c>SAMLRequest</c> form value. The name is kept for backward compatibility.
+        /// </remarks>
         public string SamlResponse { get; set; }
     }
 }

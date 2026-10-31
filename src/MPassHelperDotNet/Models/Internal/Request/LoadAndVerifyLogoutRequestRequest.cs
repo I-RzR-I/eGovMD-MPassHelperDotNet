@@ -4,7 +4,7 @@
 //  Created On       : 2023-06-19 17:57
 // 
 //  Last Modified By : RzR
-//  Last Modified On : 2023-06-28 16:26
+//  Last Modified On : 2026-09-24 15:01
 // ***********************************************************************
 //  <copyright file="LoadAndVerifyLogoutRequestRequest.cs" company="">
 //   Copyright (c) RzR. All rights reserved.
@@ -18,11 +18,14 @@
 
 using System;
 using System.Security.Cryptography.X509Certificates;
-
-#endregion
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using MPassHelperDotNet.Helpers;
 
 // ReSharper disable ClassNeverInstantiated.Global
 // ReSharper disable UnusedAutoPropertyAccessor.Global
+
+#endregion
 
 namespace MPassHelperDotNet.Models.Internal.Request
 {
@@ -60,5 +63,40 @@ namespace MPassHelperDotNet.Models.Internal.Request
         ///     Excepted user session id/index
         /// </summary>
         public string ExpectedSessionIndex { get; set; }
+
+        /// <summary>
+        ///     Identity provider certificates trusted for the signature (primary and rotation certificates).
+        /// </summary>
+        internal X509Certificate2Collection IdpCertificates { get; set; }
+
+        /// <summary>
+        ///     Expected issuer (identity provider EntityID)
+        /// </summary>
+        internal string ExpectedIssuer { get; set; }
+
+        /// <summary>
+        ///     Allowed clock skew
+        /// </summary>
+        internal TimeSpan ClockSkew { get; set; }
+
+        /// <summary>
+        ///     Current UTC time used for every time validation
+        /// </summary>
+        internal DateTime CurrentUtc { get; set; }
+
+        /// <summary>
+        ///     Allow RSA-SHA1/SHA-1 signatures
+        /// </summary>
+        internal bool AllowSha1Signatures { get; set; }
+
+        /// <summary>
+        ///     Maximum accepted length (characters) of the Base64 SAML message
+        /// </summary>
+        internal int MaxMessageLength { get; set; } = DefaultStaticInfo.DefaultSamlMessageMaxLength;
+
+        /// <summary>
+        ///     Logger for caught exceptions (never for payloads). Defaults to <see cref="NullLogger.Instance" />.
+        /// </summary>
+        internal ILogger Logger { get; set; } = NullLogger.Instance;
     }
 }

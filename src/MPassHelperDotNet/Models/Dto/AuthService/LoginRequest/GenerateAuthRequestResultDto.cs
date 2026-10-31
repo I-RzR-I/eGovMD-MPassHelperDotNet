@@ -26,11 +26,16 @@ namespace MPassHelperDotNet.Models.Dto.AuthService.LoginRequest
         /// <summary>
         ///     Auth/login request id, uniq id for identification
         /// </summary>
+        /// <remarks>
+        ///     Store it per browser session in server-side storage (never in a client value); take (read and remove) it
+        ///     before the SAMLResponse is validated, whatever the outcome, so it is used only once.
+        /// </remarks>
         public string AuthRequestId { get; set; }
 
         /// <summary>
         ///     HTML template used to response to issuer
         /// </summary>
+        /// <remarks>Serve it with <c>Cache-Control: no-store</c>; it carries a single-use signed SAML message.</remarks>
         public string HtmlDocument { get; set; }
     }
 }

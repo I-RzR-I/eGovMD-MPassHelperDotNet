@@ -4,7 +4,7 @@
 //  Created On       : 2023-06-17 21:44
 // 
 //  Last Modified By : RzR
-//  Last Modified On : 2023-06-28 16:26
+//  Last Modified On : 2026-09-25 10:25
 // ***********************************************************************
 //  <copyright file="LoadAndVerifySamlAnyResponseResult.cs" company="">
 //   Copyright (c) RzR. All rights reserved.
@@ -16,6 +16,7 @@
 
 #region U S A G E S
 
+using System;
 using System.Xml;
 
 // ReSharper disable ClassNeverInstantiated.Global
@@ -38,5 +39,15 @@ namespace MPassHelperDotNet.Models.Internal.Result
         ///     XML namespace manager
         /// </summary>
         public XmlNamespaceManager NamespaceManager { get; set; }
+
+        /// <summary>
+        ///     Response ID
+        /// </summary>
+        internal string ResponseId { get; set; }
+
+        /// <summary>
+        ///     Response IssueInstant (UTC)
+        /// </summary>
+        internal DateTimeOffset IssueInstantUtc { get; set; }
     }
 }
