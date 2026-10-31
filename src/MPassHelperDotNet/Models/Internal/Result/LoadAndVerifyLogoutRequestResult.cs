@@ -4,7 +4,7 @@
 //  Created On       : 2023-06-19 17:57
 // 
 //  Last Modified By : RzR
-//  Last Modified On : 2023-06-28 16:26
+//  Last Modified On : 2026-09-24 14:36
 // ***********************************************************************
 //  <copyright file="LoadAndVerifyLogoutRequestResult.cs" company="">
 //   Copyright (c) RzR. All rights reserved.
@@ -16,11 +16,12 @@
 
 #region U S A G E S
 
+using System;
 using System.Xml;
 
-#endregion
-
 // ReSharper disable UnusedAutoPropertyAccessor.Global
+
+#endregion
 
 namespace MPassHelperDotNet.Models.Internal.Result
 {
@@ -38,5 +39,10 @@ namespace MPassHelperDotNet.Models.Internal.Result
         ///     Logout request id
         /// </summary>
         public string RequestId { get; set; }
+
+        /// <summary>
+        ///     UTC instant until which the message ID must be kept by the replay cache
+        /// </summary>
+        internal DateTimeOffset ReplayExpiresAtUtc { get; set; }
     }
 }

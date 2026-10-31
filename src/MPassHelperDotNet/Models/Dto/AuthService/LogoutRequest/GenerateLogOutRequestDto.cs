@@ -4,7 +4,7 @@
 //  Created On       : 2023-06-23 14:43
 // 
 //  Last Modified By : RzR
-//  Last Modified On : 2023-06-28 16:26
+//  Last Modified On : 2026-09-22 12:12
 // ***********************************************************************
 //  <copyright file="GenerateLogOutRequestDto.cs" company="">
 //   Copyright (c) RzR. All rights reserved.
@@ -31,6 +31,7 @@ namespace MPassHelperDotNet.Models.Dto.AuthService.LogoutRequest
         /// <summary>
         ///     Logout relay state
         /// </summary>
+        /// <remarks>Required. Limited to 80 bytes (UTF-8).</remarks>
         public string RelayState { get; set; }
 
         /// <summary>

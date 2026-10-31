@@ -31,6 +31,7 @@ namespace MPassHelperDotNet.Models.Dto.RequestBuilder.LogOutResponse
         /// <summary>
         ///     HTML template used to response to issuer
         /// </summary>
+        /// <remarks>Serve it with <c>Cache-Control: no-store</c>; it carries a single-use signed SAML message.</remarks>
         public string HtmlAuthDocument { get; set; }
 
         /// <summary>

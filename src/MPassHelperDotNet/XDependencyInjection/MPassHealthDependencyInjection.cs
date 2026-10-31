@@ -4,7 +4,7 @@
 //  Created On       : 2023-06-22 00:23
 // 
 //  Last Modified By : RzR
-//  Last Modified On : 2023-06-28 16:26
+//  Last Modified On : 2026-09-22 09:03
 // ***********************************************************************
 //  <copyright file="MPassHealthDependencyInjection.cs" company="">
 //   Copyright (c) RzR. All rights reserved.
@@ -21,7 +21,7 @@ using System.Collections.Generic;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using MPassHelperDotNet.Helpers;
+using MPassHelperDotNet.Helpers.Messages;
 using MPassHelperDotNet.Services;
 
 #endregion
@@ -37,35 +37,41 @@ namespace MPassHelperDotNet.XDependencyInjection
     public static partial class DependencyInjection
     {
         /// <summary>
-        ///     Add MPass certificate health check
+        ///     Add MPass certificate health check.
         /// </summary>
         /// <param name="builder">Required. Health check builder.</param>
-        /// <param name="failureStatus">Optional. The default value is default.</param>
-        /// <param name="tags">Optional. The default value is default.</param>
-        /// <returns></returns>
-        /// <remarks></remarks>
-        public static IHealthChecksBuilder AddMPassCertificateHealthCheck(
-            this IHealthChecksBuilder builder,
-            HealthStatus? failureStatus = default, IEnumerable<string> tags = default)
+        /// <param name="failureStatus">(Optional) Optional. The default value is default.</param>
+        /// <param name="tags">(Optional) Optional. The default value is default.</param>
+        /// <returns>
+        ///     An IHealthChecksBuilder.
+        /// </returns>
+        public static IHealthChecksBuilder AddMPassCertificateHealthCheck(this IHealthChecksBuilder builder,
+            HealthStatus? failureStatus = null, IEnumerable<string> tags = null)
             => builder.AddMPassCertificateHealthCheck("MPass", failureStatus, tags);
 
         /// <summary>
-        ///     Add MPass certificate health check
+        ///     Add MPass certificate health check.
         /// </summary>
-        /// <param name="builder">Required.  Health check builder</param>
+        /// <exception cref="ArgumentException">
+        ///     Thrown when one or more arguments have unsupported or illegal values.
+        /// </exception>
+        /// <param name="builder">Required.  Health check builder.</param>
         /// <param name="name">Required. Configuration name.</param>
-        /// <param name="failureStatus">Optional. The default value is default.</param>
-        /// <param name="tags">Optional. The default value is default.</param>
-        /// <returns></returns>
-        /// <remarks></remarks>
-        public static IHealthChecksBuilder AddMPassCertificateHealthCheck(
-            this IHealthChecksBuilder builder,
-            string name, HealthStatus? failureStatus = default, IEnumerable<string> tags = default)
+        /// <param name="failureStatus">(Optional) Optional. The default value is default.</param>
+        /// <param name="tags">(Optional) Optional. The default value is default.</param>
+        /// <returns>
+        ///     An IHealthChecksBuilder.
+        /// </returns>
+        public static IHealthChecksBuilder AddMPassCertificateHealthCheck(this IHealthChecksBuilder builder,
+            string name, HealthStatus? failureStatus = null, IEnumerable<string> tags = null)
         {
             if (string.IsNullOrWhiteSpace(name))
+            {
                 throw new ArgumentException(string.Format(DefaultMessages.ArgumentNullMessage + ". Please provide a configuration name, MPass!",
-                    nameof(name)));
+                    nameof(name)), nameof(name));
+            }
 
+            builder.Services.TryAddSingleton(TimeProvider.System);
             builder.Services.TryAddSingleton<MPassSamlHealthCheck>();
 
             // ReSharper disable once AssignNullToNotNullAttribute

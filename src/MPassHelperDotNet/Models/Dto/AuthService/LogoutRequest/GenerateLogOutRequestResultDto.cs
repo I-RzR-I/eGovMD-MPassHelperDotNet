@@ -24,13 +24,27 @@ namespace MPassHelperDotNet.Models.Dto.AuthService.LogoutRequest
     public class GenerateLogOutRequestResultDto
     {
         /// <summary>
-        ///     Logout request id, uniq id for identification
+        ///     Logout request id, uniq id for identification.
         /// </summary>
+        /// <remarks>
+        ///     Store it per browser session in server-side storage (never in a client value); take (read
+        ///     and remove) it before the logout SAMLResponse is validated, whatever the outcome, so it
+        ///     is used only once.
+        /// </remarks>
+        /// <value>
+        ///     The identifier of the log out request.
+        /// </value>
         public string LogOutRequestId { get; set; }
 
         /// <summary>
-        ///     HTML template send to service provider
+        ///     HTML template send to service provider.
         /// </summary>
+        /// <remarks>
+        ///     Serve it with <c>Cache-Control: no-store</c>; it carries a single-use signed SAML message.
+        /// </remarks>
+        /// <value>
+        ///     The HTML document.
+        /// </value>
         public string HtmlDocument { get; set; }
     }
 }

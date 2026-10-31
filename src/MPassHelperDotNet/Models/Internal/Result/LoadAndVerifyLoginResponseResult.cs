@@ -4,7 +4,7 @@
 //  Created On       : 2023-06-18 02:04
 // 
 //  Last Modified By : RzR
-//  Last Modified On : 2023-06-28 16:26
+//  Last Modified On : 2026-09-24 17:40
 // ***********************************************************************
 //  <copyright file="LoadAndVerifyLoginResponseResult.cs" company="">
 //   Copyright (c) RzR. All rights reserved.
@@ -16,6 +16,7 @@
 
 #region U S A G E S
 
+using System;
 using System.Collections.Generic;
 
 // ReSharper disable CollectionNeverQueried.Global
@@ -44,5 +45,30 @@ namespace MPassHelperDotNet.Models.Internal.Result
         ///     SAML response attributes
         /// </summary>
         public Dictionary<string, IList<string>> Attributes { get; set; }
+
+        /// <summary>
+        ///     Response InResponseTo (the auth request id)
+        /// </summary>
+        internal string InResponseTo { get; set; }
+
+        /// <summary>
+        ///     Authentication IP address (AuthnStatement/SubjectLocality/@Address)
+        /// </summary>
+        internal string AuthIp { get; set; }
+
+        /// <summary>
+        ///     Response ID
+        /// </summary>
+        internal string ResponseId { get; set; }
+
+        /// <summary>
+        ///     Assertion ID
+        /// </summary>
+        internal string AssertionId { get; set; }
+
+        /// <summary>
+        ///     UTC instant until which the message ID must be kept by the replay cache
+        /// </summary>
+        internal DateTimeOffset ReplayExpiresAtUtc { get; set; }
     }
 }

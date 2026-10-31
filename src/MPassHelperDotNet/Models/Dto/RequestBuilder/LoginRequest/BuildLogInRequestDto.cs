@@ -29,5 +29,22 @@ namespace MPassHelperDotNet.Models.Dto.RequestBuilder.LoginRequest
         /// <value></value>
         /// <remarks></remarks>
         public string RelayState { get; set; } = "LoginRequest Relay State";
+
+        /// <summary>
+        ///     Gets or sets a value indicating whether the identity
+        ///     provider is asked to authenticate the user again.
+        /// </summary>
+        public bool ForceAuthn { get; set; }
+
+        /// <summary>
+        ///     Gets or sets a value indicating whether the identity 
+        ///     provider is asked not to interact with the user.
+        /// </summary>
+        public bool IsPassive { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the preferred language of the identity provider login page.
+        /// </summary>
+        public string Language { get; set; }
     }
 }
